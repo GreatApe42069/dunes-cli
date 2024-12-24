@@ -57,7 +57,7 @@ NODE_RPC_URL=http://<ip>:<port>
 NODE_RPC_USER=<username>
 NODE_RPC_PASS=<password>
 TESTNET=false
-FEE_PER_KB=500000000
+FEE_PER_KB=50000000
 ORD=https://ord.dunesprotocol.com/
 ```
 
