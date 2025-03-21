@@ -58,7 +58,6 @@ NODE_RPC_USER=<username>
 NODE_RPC_PASS=<password>
 TESTNET=false
 FEE_PER_KB=50000000
-UNSPENT_API=https://unspent.dogeord.io/api/v2/address/unspent/
 ORD=https://wonky-ord-v2.dogeord.io/
 ```
 
