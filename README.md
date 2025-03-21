@@ -94,16 +94,18 @@ node dunes.js wallet send <address> <amount>
 Deploy a dune:
 
 ```
-node dunes.js deployOpenDune 'RANDOM•DUNE•NAME' <symbol> <limit-per-mint> <decimals> <max-nr-of-mints> <mint-absolute-start-block-height> <mint-absolute-stop-block-height> <mint-relative-start-block-height> <mint-relative-end-block-height> <amount-premined-to-deployer> <opt-in-for-future-protocol-changes> <minting-allowed>
+node dunes.js deployOpenDune 'RANDOM•DUNE•NAME' <symbol> <limit-per-mint> <decimals> <max-nr-of-mints> <mint-absolute-start-block-height> <mint-absolute-stop-block-height> <mint-relative-start-block-height> <mint-relative-end-block-height> <amount-premined-to-deployer> <opt-in-for-future-protocol-changes> <minting-allowed> [parentId]
 ```
 
-Example for a dune that can be minted for 100 blocks, with a limit of 100000000, 8 decimals, no mint limit, symbol R (emojis also work) and premining 1R for the deployer during deployment. The `false` means the dune will not opt-in for future protocol changes. The `true` means mints are open.
+**Note**: The `[parentId]` parameter is optional and links the new Dune to a parent inscription by specifying its inscription ID (e.g., `e6c6efe91b6084eae2c8a2fd6470d3d0dbfbb342f1b8601904f45be8095058e2i0`). To use this, the parent inscription’s private key must be in your wallet (`.wallet.json`).
 
-The `null` means that the parameters won't be included, e.g. for not setting a max nr of mints limit. If absolute and relative block heights are defined, the dune minting terms will use the highest defined for start as the starting block height parameter and then lowest defined end as the ending block height.
+**Example**:
 
 ```
-node dunes.js deployOpenDune 'RANDOM•DUNE•NAME' 'R' 100000000 8 null null null null 100 100000000 false true
+node dunes.js deployOpenDune 'RANDOM•DUNE•NAME' 'R' 100000000 8 null null null null 100 100000000 false true e6c6efe91b6084eae2c8a2fd6470d3d0dbfbb342f1b8601904f45be8095058e2i0
 ```
+
+This deploys a Dune named `RANDOM•DUNE•NAME` with symbol `R`, a limit of 100000000 per mint, 8 decimals, and premines 1R (100 atomic units) to the deployer. It’s linked to the parent inscription `e6c6...i0`
 
 Mint a dune:
 
@@ -166,6 +168,18 @@ Example:
 ```
 node dunes.js sendDunesNoProtocol DDjbkNTHPZAq3f6pzApDzP712V1xqSE2Ya 10 WHO•LET•THE•DUNES•OUT
 ```
+
+### Parent Inscriptions
+You can link a new Dune to an existing "parent" inscription (e.g., an image or another Dune) using the optional `[parentId]` parameter in `deployOpenDune`. This creates a hierarchical relationship between digital assets.
+
+**Requirements**:
+- The parent inscription’s private key must be in your wallet (`.wallet.json`), as the script spends its UTXO to establish the link.
+- The `parentId` must be a valid inscription ID in the format `txid:iN` (e.g., `e6c6efe91b6084eae2c8a2fd6470d3d0dbfbb342f1b8601904f45be8095058e2i0`), where `txid` is the transaction ID and `N` is the output index.
+
+**Why Use It?**:
+- Organize related Dunes under a single parent (e.g., linking single or multiple Dunes to an image).
+- Build structured collections with parent-child relationships.
+
 
 ## FAQ
 
