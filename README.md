@@ -180,7 +180,12 @@ You can link a new Dune to an existing "parent" inscription (e.g., an image or a
 - Organize related Dunes under a single parent (e.g., linking single or multiple Dunes to an image).
 - Build structured collections with parent-child relationships.
 
-**Note**: This feature is optional. Dunes can be etched without a parent if no `parentId` is provided.
+**Important Notes**: 
+- This feature is optional. Dunes can be etched without a parent if no `parentId` is provided.
+
+- This "Requires" the parent’s private key to be accessible in the wallet.
+
+- Ensure that the parent inscription’s private key is accessible in the wallet derived from your MetaMask seed phrase. This is necessary because the transaction will spend the parent UTXO to establish the parent-child relationship
 
 
 ## FAQ
