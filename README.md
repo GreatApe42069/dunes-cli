@@ -180,6 +180,8 @@ You can link a new Dune to an existing "parent" inscription (e.g., an image or a
 - Organize related Dunes under a single parent (e.g., linking single or multiple Dunes to an image).
 - Build structured collections with parent-child relationships.
 
+**Note**: This feature is optional. Dunes can be etched without a parent if no `parentId` is provided.
+
 
 ## FAQ
 
