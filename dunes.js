@@ -865,9 +865,10 @@ function isSingleEmoji(str) {
   return matches ? matches.length === 1 : false;
 }
 
+// Updated deployOpenDune command with optional parentId
 program
   .command("deployOpenDune")
-  .description("Deploy a Dune that is open for mint")
+  .description("Deploy a Dune that is open for mint with an optional parent inscription")
   .argument("<tick>", "Tick for the dune")
   .argument("<symbol>", "symbol")
   .argument("<limit>", "Max amount that can be minted in one transaction")
@@ -876,22 +877,11 @@ program
   .argument("<heightStart>", "Absolute block height where minting opens")
   .argument("<heightEnd>", "Absolute block height where minting closes")
   .argument("<offsetStart>", "Relative block height where minting opens")
-  .argument(
-    "<offsetEnd>",
-    "Relative block height where minting closes (former known as term)"
-  )
-  .argument(
-    "<premine>",
-    "Amount of allocated dunes to the etcher while etching"
-  )
-  .argument(
-    "<turbo>",
-    "Marks this etching as opting into future protocol changes."
-  )
-  .argument(
-    "<openMint>",
-    "Set this to true to allow minting, taking terms (limit, cap, height, offset) as restrictions"
-  )
+  .argument("<offsetEnd>", "Relative block height where minting closes")
+  .argument("<premine>", "Amount of allocated dunes to the etcher while etching")
+  .argument("<turbo>", "Marks this etching as opting into future protocol changes")
+  .argument("<openMint>", "Set to true to allow minting with terms")
+  .argument("[parentId]", "Optional parent inscription ID (e.g., e6c6...i0)") // New optional argument
   .action(
     async (
       tick,
@@ -905,24 +895,16 @@ program
       offsetEnd,
       premine,
       turbo,
-      openMint
+      openMint,
+      parentId // New parameter
     ) => {
       console.log("Deploying open Dune...");
       console.log(
-        tick,
-        symbol,
-        limit,
-        divisibility,
-        cap,
-        heightStart,
-        heightEnd,
-        offsetStart,
-        offsetEnd,
-        premine,
-        turbo,
-        openMint
+        tick, symbol, limit, divisibility, cap, heightStart, heightEnd,
+        offsetStart, offsetEnd, premine, turbo, openMint, parentId
       );
 
+      // Parse arguments, allowing "null" or undefined
       cap = cap === "null" ? null : cap;
       heightStart = heightStart === "null" ? null : heightStart;
       heightEnd = heightEnd === "null" ? null : heightEnd;
@@ -930,29 +912,25 @@ program
       offsetEnd = offsetEnd === "null" ? null : offsetEnd;
       premine = premine === "null" ? null : premine;
       turbo = turbo === "null" ? null : turbo === "true";
-
       openMint = openMint.toLowerCase() === "true";
 
       if (symbol) {
         if (symbol.length !== 1 && !isSingleEmoji(symbol)) {
-          console.error(
-            `Error: The argument symbol should have exactly 1 character, but is '${symbol}'`
-          );
+          console.error(`Error: Symbol must be 1 character, got '${symbol}'`);
           process.exit(1);
         }
       }
 
       const spacedDune = spacedDunefromStr(tick);
-
       const blockcount = await getblockcount();
-      const mininumAtCurrentHeight = minimumAtHeight(blockcount.data.result);
+      const minimumAtCurrentHeight = minimumAtHeight(blockcount.data.result);
 
-      if (spacedDune.dune.value < mininumAtCurrentHeight) {
-        const minAtCurrentHeightObj = { _value: mininumAtCurrentHeight };
+      if (spacedDune.dune.value < minimumAtCurrentHeight) {
+        const minAtCurrentHeightObj = { _value: minimumAtCurrentHeight };
         format.call(minAtCurrentHeightObj, formatter);
         console.error("Dune characters are invalid at current height.");
         process.stdout.write(
-          `minimum at current height: ${mininumAtCurrentHeight} possible lowest tick: ${formatter.output}\n`
+          `minimum at current height: ${minimumAtCurrentHeight} possible lowest tick: ${formatter.output}\n`
         );
         console.log(`dune: ${tick} value: ${spacedDune.dune.value}`);
         process.exit(1);
@@ -972,32 +950,66 @@ program
         symbol.codePointAt()
       );
 
-      // create script for given dune statements
+      // Create script for Dune etching
       const script = constructScript(etching, undefined, null, null);
 
-      // getting the wallet balance
+      // Load wallet
       let wallet = JSON.parse(fs.readFileSync(WALLET_PATH));
       let balance = wallet.utxos.reduce((acc, curr) => acc + curr.satoshis, 0);
       if (balance == 0) throw new Error("no funds");
 
-      // creating new tx
+      // Create new transaction
       let tx = new Transaction();
 
-      // first output carries the protocol message
+      // Add parent UTXO if provided
+      if (parentId) {
+        const parentUtxo = await fetchParentUtxo(parentId);
+        tx.from(parentUtxo); // Add parent as input
+        console.log(`Added parent UTXO ${parentId} to transaction`);
+      }
+
+      // First output carries the protocol message and Dune etching
       tx.addOutput(
         new dogecore.Transaction.Output({ script: script, satoshis: 0 })
       );
 
-      // Create second output to sender if dunes are directly allocated in etching
+      // Second output to sender if premine is specified
       if (premine > 0) tx.to(wallet.address, 100_000);
 
+      // Fund the transaction with safe UTXOs (excludes parent if it has dunes)
       await fund(wallet, tx);
 
+      // Verify funds
+      if (tx.inputAmount < tx.outputAmount + tx.getFee()) {
+        throw new Error("not enough funds to cover outputs and fee");
+      }
+
+      // Broadcast the transaction
       await broadcast(tx, true);
 
-      console.log(tx.hash);
+      console.log(`Dune deployed with tx hash: ${tx.hash}`);
     }
   );
+
+// Helper function to fetch parent UTXO
+async function fetchParentUtxo(parentId) {
+  const txid = parentId.split('i')[0]; // Extract txid from e.g., "e6c6...i0"
+  const vout = parseInt(parentId.split('i')[1], 10); // Extract vout
+  try {
+    const rawTx = await getrawtx(txid);
+    const txData = rawTx.data.result;
+    const output = txData.vout[vout];
+    return {
+      txid: txid,
+      vout: vout,
+      script: output.scriptPubKey.hex,
+      satoshis: Math.round(output.value * 1e8), // Convert DOGE to satoshis
+    };
+  } catch (error) {
+    console.error(`Error fetching parent UTXO ${parentId}:`, error);
+    throw error;
+  }
+}
 
 async function parseScriptString(scriptString) {
   const parts = scriptString.split(" ");
@@ -1211,10 +1223,12 @@ const createUnsignedEtchTxFromUtxo = (
   return tx;
 };
 
-program.action("getBlockCount").action(async () => {
-  const res = await getblockcount();
-  console.log(res.data.result);
-});
+program
+  .command("getBlockCount")
+  .action(async () => {
+    const res = await getblockcount();
+    console.log(res.data.result);
+  });
 
 // @warning: this method is not dune aware.. so the dunes on the wallet are in danger of being spend
 program
@@ -1359,6 +1373,7 @@ walletCommand
 async function main() {
   program.parse();
 }
+
 function walletNew() {
   if (!fs.existsSync(WALLET_PATH)) {
     const privateKey = new PrivateKey();
@@ -1549,14 +1564,13 @@ function updateWallet(wallet, tx) {
   });
 }
 
-async function getrawtx(tx) {
-  console.log("tx");
-  console.log(tx.toString());
+async function getrawtx(txid) {
+  console.log("txId:", txid);  // Log the transaction ID
   const body = {
     jsonrpc: "1.0",
     id: 0,
     method: "getrawtransaction",
-    params: [tx.toString(), true],
+    params: [txid, true],
   };
 
   const options = {
