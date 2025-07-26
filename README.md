@@ -274,6 +274,8 @@ There's a problem with the node connection. Your `dogecoin.conf` file should loo
 rpcuser=ape
 rpcpassword=zord
 rpcport=22555
+txindex=1
+rpccallip=127.0.0.1
 server=1
 ```
 
@@ -282,10 +284,16 @@ Make sure `port` is not set to the same number as `rpcport`. Also make sure `rpc
 Your `.env file` should look like:
 
 ```
+PROTOCOL_IDENTIFIER=D
 NODE_RPC_URL=http://127.0.0.1:22555
 NODE_RPC_USER=ape
 NODE_RPC_PASS=zord
 TESTNET=false
+FEE_PER_KB=50000000
+UNSPENT_API=https://unspent.dogeord.io/api/v1/address/unspent/  //optional
+ORD=https://wonky-ord-v2.dogeord.io/
+WALLET=.wallet.json
+SERVER_PORT=3000
 ```
 
 ### I'm getting "insufficient priority" errors when minting
