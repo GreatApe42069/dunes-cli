@@ -37,11 +37,12 @@ git clone https://github.com/sirduney/dunes-cli.git
 
 download this [zip file](https://github.com/verydogelabs/do20nals/archive/refs/heads/main.zip) and upack in a directory.
 
+
 Now open your terminal and change to the directory the sources are installed.
 
 ```
-cd <path to your download / installation>
-npm install
+cd <path to your download / installation e.g. "C:\Doginals-Main">
+npm install audit fix
 ```
 
 After all dependencies are solved, you can configure the environment:
